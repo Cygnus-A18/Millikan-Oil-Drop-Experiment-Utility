@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .models import DropletData
+from .analysis import get_q, get_r, get_n, get_all_q, get_all_r, get_all_n
 from matplotlib.backends.backend_pdf import PdfPages
 
 def plot_discrete_charge(
@@ -18,15 +19,13 @@ def plot_discrete_charge(
 
     plt.figure()
     qs = []
-    es = np.linspace(1,13,13) * 1.602e-19
 
     e_points = [
         q
         for trial in data
-        for q in trial.get_all_q()
+        for q in get_all_q(trial)
         if q <= 1.9e-19
     ]
-
 
     estimated_e = np.mean(e_points)
 
@@ -34,11 +33,11 @@ def plot_discrete_charge(
         data = [trial for trial in data if trial.date == date]
     
     if show_ionization_measurements:
-        qs = [q for trial in data for q in trial.get_all_q()]
-        xs = [r for trial in data for r in trial.get_all_r()]
+        qs = [q for trial in data for q in get_all_q(trial)]
+        xs = [r for trial in data for r in get_all_r(trial)]
     else:
-        qs = [trial.get_q() for trial in data]
-        xs = [trial.get_r() for trial in data]
+        qs = [get_q(trial) for trial in data]
+        xs = [get_r(trial) for trial in data]
     
     filter = [(v,l) for v, l in zip(qs, xs) if (v * (10**19)) <= max_size]
     qs, xs = map(list, zip(*filter))
@@ -116,10 +115,10 @@ def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf")
 
             fig, ax = plt.subplots(figsize=(7, 4))
 
-            qs = trial.get_all_q()
-            xs = trial.get_all_r()
+            qs = get_all_q(trial)
+            xs = get_all_r(trial)
 
-            n = np.round(trial.get_n())
+            n = np.round(get_n(trial))
             if n == 0:
                 ax.scatter(xs, qs)
                 ax.set_title(f"Trial {i}")
@@ -127,7 +126,7 @@ def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf")
                 plt.close(fig)
                 continue
 
-            e_est = trial.get_q() / n
+            e_est = get_q(trial) / n
             es = e_est * np.arange(1, 11)
 
             ax.scatter(xs, qs)

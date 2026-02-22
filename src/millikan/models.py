@@ -46,26 +46,18 @@ class Trial:
         else:
             raise IndexError(f"invalid index: {index}")
     
-    def get_all_q(self):
-        qs = []
-        for i in range(len(self.all_rise_times)):
-            qs.append(self.get_q(i))
+    def _get_weighted_average(self, values):
+        if len(values) == 0:
+            return np.nan
+        values = np.array(values)
+        median = np.median(values)
+        rlist = values - median
+        MAD = np.median(abs(rlist))
+        if MAD == 0:
+            return np.mean(values)
+        weights = 1 / (1 + (rlist / MAD)**2)
 
-        return qs
-
-    def get_all_r(self):
-        rs = []
-        for i in range(len(self.all_rise_times)):
-            rs.append(self.get_r(i))
-
-        return rs
-
-    def get_all_n(self):
-        ns = []
-        for i in range(len(self.all_rise_times)):
-            ns.append(self.get_n(i))
-
-        return ns
+        return np.average(values, weights=weights)
 
 class DropletData:
     def __init__(self):

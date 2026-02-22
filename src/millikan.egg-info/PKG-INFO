@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: millikan
+Version: 0.1.0
+Summary: Millikan oil drop experiment analysis and plotting tool
+Author: Allex Smith
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.24
+Requires-Dist: matplotlib>=3.7
+Requires-Dist: scipy>=1.10
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1; extra == "dev"
+
+# Millikan-Oil-Drop-Experiment-Utility
+Helper utility to serialize droplet data and perform data analysis and produce figures from custom data format. Includes a custom terminal based stopwatch to collect live data more efficiently.

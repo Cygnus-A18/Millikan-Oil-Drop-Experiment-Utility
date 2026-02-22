@@ -135,9 +135,6 @@ def record_trial_live(filepath):
         breakpoint()
 
 def main():
-    return
-
-if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     group = parser.add_mutually_exclusive_group()
@@ -163,6 +160,10 @@ if __name__ == "__main__":
         data = DropletData()
         load_data(args.open_file, data)
         plot_discrete_charge(data)
+        plot_each_ionization(data)
         breakpoint()
     else:
-        main()
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()

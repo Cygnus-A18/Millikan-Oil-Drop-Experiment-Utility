@@ -121,23 +121,54 @@ def compute_amqn(trial,
 
         return a, m, q, n
 
-def get_q(trial, ionization_index=0):
-    _, _, q, _ = trial._compute_amqn(ionization_index=ionization_index)
+def get_q(trial: Trial, ionization_index=0):
+    _, _, q, _ = compute_amqn(trial, ionization_index=ionization_index)
     return q
-def get_a(trial, ionization_index=0):
-    a, _, _, _ = trial._compute_amqn(ionization_index=ionization_index)
+
+
+def get_a(trial: Trial, ionization_index=0):
+    a, _, _, _ = compute_amqn(trial, ionization_index=ionization_index)
     return a
-def get_m(trial, ionization_index=0):
-    _, m, _, _ = trial._compute_amqn(ionization_index=ionization_index)
+
+
+def get_m(trial: Trial, ionization_index=0):
+    _, m, _, _ = compute_amqn(trial, ionization_index=ionization_index)
     return m
-def get_n(trial, ionization_index=0, e_custom=None):
-    if e_custom == None:
-        _, _, _, n = trial._compute_amqn(ionization_index=ionization_index)
+
+
+def get_n(trial: Trial, ionization_index=0, e_custom=None):
+    if e_custom is None:
+        _, _, _, n = compute_amqn(trial, ionization_index=ionization_index)
     else:
-        _, _, _, n = trial._compute_amqn(ionization_index=ionization_index, e=e_custom)
+        _, _, _, n = compute_amqn(
+            trial, ionization_index=ionization_index, e=e_custom
+        )
     return n
-def get_r(trial, ionization_index=0):
-    m = trial.get_m()
+
+
+def get_r(trial: Trial):
+    m = get_m(trial)
     rho = 886
 
-    return ((3*m / (4 * np.pi * rho)) ** (1/3))
+    return (3 * m / (4 * np.pi * rho)) ** (1 / 3)
+
+def get_all_q(trial:Trial):
+    qs = []
+    for i in range(len(trial.all_rise_times)):
+        qs.append(get_q(trial, i))
+
+    return qs
+
+def get_all_r(trial:Trial):
+    rs = []
+    for i in range(len(trial.all_rise_times)):
+        rs.append(get_r(trial, i))
+
+    return rs
+
+def get_all_n(trial:Trial):
+    ns = []
+    for i in range(len(trial.all_rise_times)):
+        ns.append(get_n(trial, i))
+
+    return ns
