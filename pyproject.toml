@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "millikan"
+version = "0.1.0"
+description = "Millikan oil drop experiment analysis and plotting tool"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Allex Smith" }
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1",
+]
+
+[project.scripts]
+millikan = "millikan.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
