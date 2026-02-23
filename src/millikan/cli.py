@@ -160,8 +160,14 @@ def main():
         data = DropletData()
         load_data(args.open_file, data)
         plot_discrete_charge(data)
+        plot_discrete_charge(data, max_size=10.0)
+        plot_discrete_charge(data, show_ionization_measurements=False, show_mean_q_lines=False, max_size=10.0)
+        plot_discrete_charge(data, show_ionization_measurements=False, show_mean_q_lines=False)
+        plot_discrete_charge(data, show_ionization_measurements=False)
+        plot_discrete_charge(data, show_ionization_measurements=False, max_size=10.0)
+        plot_discrete_charge(data, show_mean_q_lines=False)
+        plot_discrete_charge(data, show_mean_q_lines=False, max_size=10.0)
         plot_each_ionization(data)
-        breakpoint()
     else:
         parser.print_help()
 

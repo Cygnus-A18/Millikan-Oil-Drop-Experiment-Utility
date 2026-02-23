@@ -2,6 +2,42 @@ import numpy as np
 from .models import Trial
 from scipy.interpolate import UnivariateSpline
 
+def get_weighted_average(values):
+        if len(values) == 0:
+            return np.nan
+        values = np.array(values)
+        median = np.median(values)
+        rlist = values - median
+        MAD = np.median(abs(rlist))
+        if MAD == 0:
+            return np.mean(values)
+        weights = 1 / (1 + (rlist / MAD)**2)
+
+        return np.average(values, weights=weights)
+
+def get_weighted_error(values):
+    if len(values) == 0:
+        return np.nan
+
+    values = np.array(values)
+    median = np.median(values)
+    rlist = values - median
+    MAD = np.median(np.abs(rlist))
+
+    if MAD == 0:
+        return np.std(values, ddof=1) / np.sqrt(len(values))
+
+    weights = 1 / (1 + (rlist / MAD)**2)
+
+    weighted_mean = np.average(values, weights=weights)
+
+    numerator = np.sum(weights**2 * (values - weighted_mean)**2)
+    denominator = (np.sum(weights))**2
+
+    variance = numerator / denominator
+
+    return np.sqrt(variance)
+
 def compute_e_from_all_points(data):
     es = []
     for trial in data:
@@ -109,9 +145,14 @@ def compute_amqn(trial,
     ):
         eta = calculate_eta(get_t_from_r(trial.R))
         t0 = trial.average_fall_times[ionization_index]
+        sigma_t0 = trial.sigma_fall_times[ionization_index]
         tplus = trial.average_rise_times[ionization_index]
+        sigma_tplus = trial.sigma_rise_times[ionization_index]
+
         vf = x / t0
+        sigma_vf = (x / (t0 ** 2)) * sigma_t0
         vr = x / tplus
+        sigma_vr = (x / (tplus ** 2)) * sigma_tplus
         
 
         a = np.sqrt(((b/(2*p)) ** 2) + (9*eta*vf / (2 * g * rho))) - (b/(2*p))
@@ -119,35 +160,46 @@ def compute_amqn(trial,
         q = (m * g * d * (vf + vr)) / (V * vf)
         n = q / e
 
-        return a, m, q, n
+        C = (m * g * d) / V
+
+        dq_dvf = -C * (vr / (vf**2))
+        dq_dvr = C / vf
+
+        sigma_q = np.sqrt(
+            (dq_dvf**2) * (sigma_vf**2) +
+            (dq_dvr**2) * (sigma_vr**2)
+        )
+
+        return a, m, q, n, sigma_q
 
 def get_q(trial: Trial, ionization_index=0):
-    _, _, q, _ = compute_amqn(trial, ionization_index=ionization_index)
+    _, _, q, _, _ = compute_amqn(trial, ionization_index=ionization_index)
     return q
 
-
 def get_a(trial: Trial, ionization_index=0):
-    a, _, _, _ = compute_amqn(trial, ionization_index=ionization_index)
+    a, _, _, _, _ = compute_amqn(trial, ionization_index=ionization_index)
     return a
 
 
 def get_m(trial: Trial, ionization_index=0):
-    _, m, _, _ = compute_amqn(trial, ionization_index=ionization_index)
+    _, m, _, _, _ = compute_amqn(trial, ionization_index=ionization_index)
     return m
-
 
 def get_n(trial: Trial, ionization_index=0, e_custom=None):
     if e_custom is None:
-        _, _, _, n = compute_amqn(trial, ionization_index=ionization_index)
+        _, _, _, n, _ = compute_amqn(trial, ionization_index=ionization_index)
     else:
-        _, _, _, n = compute_amqn(
+        _, _, _, n, _ = compute_amqn(
             trial, ionization_index=ionization_index, e=e_custom
         )
     return n
 
+def get_sigma_q(trial: Trial, ionization_index=0):
+    _, _, _, _, sigma_q = compute_amqn(trial, ionization_index=ionization_index)
+    return sigma_q
 
-def get_r(trial: Trial):
-    m = get_m(trial)
+def get_r(trial: Trial, ionization_index=0):
+    m = get_m(trial, ionization_index=ionization_index)
     rho = 886
 
     return (3 * m / (4 * np.pi * rho)) ** (1 / 3)
@@ -158,6 +210,13 @@ def get_all_q(trial:Trial):
         qs.append(get_q(trial, i))
 
     return qs
+
+def get_all_sigma_q(trial: Trial):
+    sigma_qs = []
+    for i in range(len(trial.all_rise_times)):
+        sigma_qs.append(get_sigma_q(trial, i))
+
+    return sigma_qs
 
 def get_all_r(trial:Trial):
     rs = []

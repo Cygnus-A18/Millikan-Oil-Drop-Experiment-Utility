@@ -18,7 +18,9 @@ class Trial:
             self.all_fall_times.append(time)
 
         self.average_rise_times = [self._get_weighted_average(times) for times in self.all_rise_times]
-        self.average_fall_times = [self._get_weighted_average(times) for times in self.all_fall_times]    
+        self.average_fall_times = [self._get_weighted_average(times) for times in self.all_fall_times]  
+        self.sigma_rise_times = [self._get_weighted_error(times) for times in self.all_rise_times]
+        self.sigma_fall_times = [self._get_weighted_error(times) for times in self.all_fall_times]  
 
     def __getitem__(self, index):
         if isinstance(index, tuple):
@@ -58,6 +60,29 @@ class Trial:
         weights = 1 / (1 + (rlist / MAD)**2)
 
         return np.average(values, weights=weights)
+
+    def _get_weighted_error(self, values):
+        if len(values) == 0:
+            return np.nan
+
+        values = np.array(values)
+        median = np.median(values)
+        rlist = values - median
+        MAD = np.median(np.abs(rlist))
+
+        if MAD == 0:
+            return np.std(values, ddof=1) / np.sqrt(len(values))
+
+        weights = 1 / (1 + (rlist / MAD)**2)
+
+        weighted_mean = np.average(values, weights=weights)
+
+        numerator = np.sum(weights**2 * (values - weighted_mean)**2)
+        denominator = (np.sum(weights))**2
+
+        variance = numerator / denominator
+
+        return np.sqrt(variance)
 
 class DropletData:
     def __init__(self):

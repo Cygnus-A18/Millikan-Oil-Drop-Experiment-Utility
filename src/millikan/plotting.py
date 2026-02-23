@@ -1,20 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from .models import DropletData
-from .analysis import get_q, get_r, get_n, get_all_q, get_all_r, get_all_n
+from .analysis import get_q, get_r, get_n, get_all_q, get_all_r, get_sigma_q, get_all_sigma_q
 from matplotlib.backends.backend_pdf import PdfPages
 
 def plot_discrete_charge(
     data:DropletData, 
-    show_ionization_measurements=False, 
-    show_mean_q_lines=False, 
+    show_ionization_measurements=True, 
+    show_mean_q_lines=True, 
     max_size=np.inf, 
     date=None,
     *,
-    n_levels: int = 13,
-    base_e_cap: float = 1.9e-19,         # used for estimating the unit charge from smallest charges
-    estimate_method: str = "mean",       # "mean" or "median"
-    rel_tolerance: float = 0.5,         # points farther than this fraction of unit charge -> unassigned
+    n_levels = 13,
+    base_e_cap = 1.9e-19,         # used for estimating the unit charge from smallest charges
+    estimate_method = "mean",       # "mean" or "median"
+    rel_tolerance = 0.5,         # points farther than this fraction of unit charge -> unassigned
+    out_path = "data/all_charge_measurements"
 ):
 
     plt.figure()
@@ -34,15 +36,23 @@ def plot_discrete_charge(
     
     if show_ionization_measurements:
         qs = [q for trial in data for q in get_all_q(trial)]
+        sigma_qs = [q for trial in data for q in get_all_sigma_q(trial)]
         xs = [r for trial in data for r in get_all_r(trial)]
     else:
         qs = [get_q(trial) for trial in data]
+        sigma_qs = [get_sigma_q(trial) for trial in data]
         xs = [get_r(trial) for trial in data]
     
-    filter = [(v,l) for v, l in zip(qs, xs) if (v * (10**19)) <= max_size]
-    qs, xs = map(list, zip(*filter))
+    filtered = [
+        (v, l, s)
+        for v, l, s in zip(qs, xs, sigma_qs)
+        if (v * (10**19)) <= max_size
+    ]
+
+    qs, xs, sigma_qs = map(list, zip(*filtered))
     qs_arr = np.asarray(qs, dtype=float)
     xs_arr = np.asarray(xs, dtype=float)
+    sigma_qs_arr = np.asarray(sigma_qs, dtype=float)
 
     small = qs_arr[qs_arr <= base_e_cap]
     if small.size == 0:
@@ -74,14 +84,28 @@ def plot_discrete_charge(
     for k in range(n_levels):
         mask = assigned & (nearest_idx == k)
         if np.any(mask):
-            plt.scatter(xs_arr[mask], qs_arr[mask],
-                        s=20,
-                        color=level_colors[k],
-                        label=f"{k+1}e")
+            plt.errorbar(
+                xs_arr[mask],
+                qs_arr[mask],
+                yerr=sigma_qs_arr[mask],
+                fmt='o',
+                markersize=4,
+                color=level_colors[k],
+                label=f"{k+1}e",
+                capsize=3
+            )
 
     if np.any(~assigned):
-        plt.scatter(xs_arr[~assigned], qs_arr[~assigned],
-                    s=20, color="black", label="unassigned")
+        plt.errorbar(
+            xs_arr[~assigned],
+            qs_arr[~assigned],
+            yerr=sigma_qs_arr[~assigned],
+            fmt='o',
+            markersize=4,
+            color="black",
+            label="unassigned",
+            capsize=3
+        )
 
     if show_mean_q_lines == True:
         for k, qe in enumerate(levels):
@@ -103,12 +127,32 @@ def plot_discrete_charge(
     if date is not None:
         plt.title(f"trials from {date}")
 
+    parts = []
+
+    parts.append("with_ionization" if show_ionization_measurements else "without_ionization")
+    parts.append("mean_q_lines" if show_mean_q_lines else "expected_e_lines")
+    if max_size < np.inf:
+        parts.append(f"max_size_{max_size}")
+
+    if date is not None:
+        parts.append(str(date))
+
+    suffix = "_".join(parts)
+    output_path = os.path.join(f"{out_path}_{suffix}.pdf")
+    
+    if not show_ionization_measurements:
+        out_path = "data/charge_measurements_without_ionizations.pdf"
+
+
     plt.ylabel("charge of drop")
     plt.xlabel("mass of drop")
-    plt.show()
+    plt.savefig(output_path, format="pdf")
+    plt.close()
 
-def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf"):
+def plot_each_ionization(data, max_size=np.inf, filename="data/ionization_plots.pdf"):
     with PdfPages(filename) as pdf:
+        all_xs = [r for trial in data for r in get_all_r(trial)]
+
         for i, trial in enumerate(data):
             if len(trial.ionized_rise_times) == 0:
                 continue
@@ -116,11 +160,12 @@ def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf")
             fig, ax = plt.subplots(figsize=(7, 4))
 
             qs = get_all_q(trial)
+            sigma_qs = get_all_sigma_q(trial)
             xs = get_all_r(trial)
 
             n = np.round(get_n(trial))
             if n == 0:
-                ax.scatter(xs, qs)
+                ax.errorbar(xs, qs, yerr=sigma_qs, fmt='o', capsize=5)
                 ax.set_title(f"Trial {i}")
                 pdf.savefig(fig)
                 plt.close(fig)
@@ -129,7 +174,7 @@ def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf")
             e_est = get_q(trial) / n
             es = e_est * np.arange(1, 11)
 
-            ax.scatter(xs, qs)
+            ax.errorbar(xs, qs, yerr=sigma_qs, fmt='o', capsize=5)
 
             for qe in es:
                 if (qe * 1e19) <= max_size:
@@ -140,6 +185,7 @@ def plot_each_ionization(data, max_size=np.inf, filename="ionization_plots.pdf")
             ax.set_title(f"Trial {i}")
             ax.set_xlabel("r")
             ax.set_ylabel("q")
+            ax.set_xlim(min(all_xs) - 0.5e-7,max(all_xs) + 0.5e-7)
 
             fig.tight_layout()
             pdf.savefig(fig)
