@@ -42,8 +42,8 @@ def compute_e_from_all_points(data):
     es = []
     for trial in data:
         for i in range(len(trial.all_rise_times)):
-            q = trial.get_q(i)
-            n = np.round(trial.get_n(i))
+            q = get_q(trial, i)
+            n = np.round(get_n(trial, i))
 
             e_val = q / n
 
@@ -51,7 +51,22 @@ def compute_e_from_all_points(data):
     
     return np.mean(es)
 
-def refine_e(q, e0, iters=50):
+def compute_e_from_lowest_points(data):
+    qs = [q for trial in data for q in get_all_q(trial)]
+    base_e_cap = 1.9e-19
+    qs_arr = np.asarray(qs)
+    small = qs_arr[qs_arr <= base_e_cap]
+    if small.size == 0:
+        small = qs_arr[qs_arr > 0]
+
+    if small.size == 0:
+        estimated_e = 1.602e-19
+    else:
+        estimated_e = np.mean(small)
+
+    return estimated_e
+
+def refine_e(q, e0, iters=1000):
     e = e0
     for _ in range(iters):
         n = np.rint(q / e).astype(int)
@@ -62,18 +77,19 @@ def refine_e(q, e0, iters=50):
         e = e_new
     return e, n
 
-def fit_e_multistart(q, max_n=10):
+def fit_e_multistart(data, max_n=10):
+    qs = [q for trial in data for q in get_all_q(trial)]
     inits = []
-    for qi in q:
+    for qi in qs:
         for k in range(1, max_n + 1):
             inits.append(qi / k)
 
     best = None
     for e0 in inits:
-        e, n = refine_e(q, e0)
+        e, n = refine_e(qs, e0)
         if n.max() > max_n:
             continue
-        resid = q - n * e
+        resid = qs - n * e
         mse = np.mean(resid**2)
         cand = (mse, e, n)
         if best is None or cand[0] < best[0]:

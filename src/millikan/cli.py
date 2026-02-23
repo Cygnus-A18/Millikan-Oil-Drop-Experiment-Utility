@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from .terminal import get_key
 from .io import record_trial, load_data
+from .analysis import compute_e_from_all_points, refine_e, fit_e_multistart, compute_e_from_lowest_points
 from .models import DropletData
 from .plotting import plot_discrete_charge, plot_each_ionization, generate_table_latex, generate_table_plaintext
 
@@ -152,6 +153,12 @@ def main():
         help="Open a recorded trial file",
     )
 
+    group.add_argument(
+        "--evaluate_e",
+        metavar="FILENAME",
+        help="Evaluate elementary charge from a recorded trial file",
+    )
+
     args = parser.parse_args()
 
     if args.record is not None:
@@ -171,6 +178,14 @@ def main():
         plot_each_ionization(data)
         generate_table_latex(data, "data/data_table_tex.txt")
         generate_table_plaintext(data, "data/data_table.txt")
+    elif args.evaluate_e is not None:
+        data = DropletData()
+        load_data(args.evaluate_e, data)
+        e1 = compute_e_from_lowest_points(data)
+        e2 = compute_e_from_all_points(data)
+        e3, _ = fit_e_multistart(data)
+
+        print(f'lowest points: {e1}\nall points: {e2}\nfit e value: {e3}')
     else:
         parser.print_help()
 

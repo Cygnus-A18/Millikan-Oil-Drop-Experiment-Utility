@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from .models import DropletData
-from .analysis import get_q, get_r, get_n, get_all_q, get_all_r, get_sigma_q, get_all_sigma_q
+from .analysis import get_q, get_r, get_n, get_all_q, get_all_r, get_sigma_q, get_all_sigma_q, get_weighted_average
 from matplotlib.backends.backend_pdf import PdfPages
 from typing import TextIO
 
@@ -80,7 +80,7 @@ def plot_discrete_charge(
     if small.size == 0:
         estimated_e = 1.602e-19
     else:
-        estimated_e = np.median(small) if estimate_method.lower() == "median" else np.mean(small)
+        estimated_e = np.median(small) if estimate_method.lower() == "median" else get_weighted_average(small)
 
     unit_e = estimated_e if show_mean_q_lines else 1.602e-19
     levels = np.arange(1, n_levels + 1, dtype=float) * unit_e
@@ -160,8 +160,7 @@ def plot_discrete_charge(
     
     if not show_ionization_measurements:
         out_path = "data/charge_measurements_without_ionizations.pdf"
-
-
+        
     plt.ylabel("charge of drop (coulombs)")
     plt.xlabel("radius of drop (meters)")
     plt.savefig(output_path, format="pdf")
