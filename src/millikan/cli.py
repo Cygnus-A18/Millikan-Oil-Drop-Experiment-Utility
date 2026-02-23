@@ -5,7 +5,7 @@ from pathlib import Path
 from .terminal import get_key
 from .io import record_trial, load_data
 from .models import DropletData
-from .plotting import plot_discrete_charge, plot_each_ionization
+from .plotting import plot_discrete_charge, plot_each_ionization, generate_table_latex, generate_table_plaintext
 
 def record_trial_live(filepath):
     """
@@ -167,7 +167,10 @@ def main():
         plot_discrete_charge(data, show_ionization_measurements=False, max_size=10.0)
         plot_discrete_charge(data, show_mean_q_lines=False)
         plot_discrete_charge(data, show_mean_q_lines=False, max_size=10.0)
+        plot_discrete_charge(data, show_only_points=True)
         plot_each_ionization(data)
+        generate_table_latex(data, "data/data_table_tex.txt")
+        generate_table_plaintext(data, "data/data_table.txt")
     else:
         parser.print_help()
 
