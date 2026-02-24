@@ -6,8 +6,9 @@ Helper utility to serialize droplet data and perform data analysis and produce f
 build: pip install -e .
 
 run options: 
-- millikan --open "filename": opens specified file plots all points and ionizations and then breakpoints for manual edits.
+- millikan --open "filename": opens specified file plots all points and ionizations into data/.
 - millikan --record "filename": starts running stop watch app and saves recorded data to the specified file.
+- millikan --evaluate_e "filename": reads in specified file and evaluates an estimation for e using three seperate methods.
 
 
 # Stopwatch Usage:
