@@ -181,11 +181,11 @@ def main():
     elif args.evaluate_e is not None:
         data = DropletData()
         load_data(args.evaluate_e, data)
-        e1 = compute_e_from_lowest_points(data)
-        e2 = compute_e_from_all_points(data)
-        e3, _ = fit_e_multistart(data)
+        e1, sigma_e1 = compute_e_from_lowest_points(data)
+        e2, sigma_e2 = compute_e_from_all_points(data)
+        e3, _, sigma_e3 = fit_e_multistart(data)
 
-        print(f'lowest points: {e1}\nall points: {e2}\nfit e value: {e3}')
+        print(f'lowest points: {e1:.4g} +- {sigma_e1:.3g}\nall points: {e2:.4g} +- {sigma_e2:.3g}\nfit e value: {e3} +- {sigma_e3:.3g}')
     else:
         parser.print_help()
 

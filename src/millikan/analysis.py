@@ -40,31 +40,51 @@ def get_weighted_error(values):
 
 def compute_e_from_all_points(data):
     es = []
+    sigma_es = []
     for trial in data:
         for i in range(len(trial.all_rise_times)):
             q = get_q(trial, i)
+            sigma_q = get_sigma_q(trial, i)
             n = np.round(get_n(trial, i))
 
             e_val = q / n
+            sigma_e_val = sigma_q / n
 
             es.append(e_val)
+            sigma_es.append(sigma_e_val)
+
+    sigma_arr = np.asarray(sigma_es)
+    e_arr = np.asarray(es)
     
-    return np.mean(es)
+    estimated_e = np.mean(e_arr)
+    sigma_e = np.sqrt(np.sum(sigma_arr**2)) / len(es)
+
+    return estimated_e, sigma_e
 
 def compute_e_from_lowest_points(data):
     qs = [q for trial in data for q in get_all_q(trial)]
+    sigma_qs = [sq for trial in data for sq in get_all_sigma_q(trial)]
+    
     base_e_cap = 1.9e-19
     qs_arr = np.asarray(qs)
-    small = qs_arr[qs_arr <= base_e_cap]
-    if small.size == 0:
-        small = qs_arr[qs_arr > 0]
+    sigma_arr = np.asarray(sigma_qs)
 
-    if small.size == 0:
+    mask = qs_arr <= base_e_cap
+    if not np.any(mask):
+        mask = qs_arr > 0
+
+    if not np.any(mask):
         estimated_e = 1.602e-19
+        sigma_e = 0.0
     else:
-        estimated_e = np.mean(small)
+        selected_qs = qs_arr[mask]
+        selected_sigmas = sigma_arr[mask]
 
-    return estimated_e
+        estimated_e = np.mean(selected_qs)
+
+        sigma_e = np.sqrt(np.sum(selected_sigmas**2)) / len(selected_qs)
+
+    return estimated_e, sigma_e
 
 def refine_e(q, e0, iters=1000):
     e = e0
@@ -79,6 +99,8 @@ def refine_e(q, e0, iters=1000):
 
 def fit_e_multistart(data, max_n=10):
     qs = [q for trial in data for q in get_all_q(trial)]
+    sigma_qs = [q for trial in data for q in get_all_sigma_q(trial)]
+    ns = []
     inits = []
     for qi in qs:
         for k in range(1, max_n + 1):
@@ -87,6 +109,7 @@ def fit_e_multistart(data, max_n=10):
     best = None
     for e0 in inits:
         e, n = refine_e(qs, e0)
+        ns.append(n)
         if n.max() > max_n:
             continue
         resid = qs - n * e
@@ -97,7 +120,12 @@ def fit_e_multistart(data, max_n=10):
 
     if best is None:
         raise RuntimeError("No fit found under the max_n constraint.")
-    return best[1], best[2]
+
+    n_arr = np.asarray(ns)
+    sigma_q_arr = np.asarray(sigma_qs)
+
+    sigma_e = 1 / np.sqrt(np.sum(n_arr ** 2 / sigma_q_arr ** 2))    
+    return best[1], best[2], sigma_e
 
 def calculate_eta(temp):
     m = 4.7058823529e-8
